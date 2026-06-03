@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>隣に、君がいる</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Noto Sans JP',sans-serif; background:#0d0d12; color:#f0eae8; height:100vh; overflow:hidden; user-select:none; }
+  #game { width:100%; height:100vh; position:relative; display:flex; flex-direction:column; }
+  #scene { flex:1; position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  #bg { position:absolute; inset:0; transition:background 1.2s ease; }
+  .bg-office { background:linear-gradient(180deg,#111820 0%,#1a2535 40%,#111820 100%); }
+  .bg-apartment { background:linear-gradient(180deg,#1a1520 0%,#2a1f35 40%,#1e1628 100%); }
+  .bg-night { background:linear-gradient(180deg,#0a0d1a 0%,#12182e 50%,#0d0f1e 100%); }
+  .bg-evening { background:linear-gradient(180deg,#1e1020 0%,#2d1830 50%,#1a0f28 100%); }
+  #bg-img { position:absolute; inset:0; background-size:cover; background-position:center; opacity:0; transition:opacity 1.2s ease; }
+  #bg-img.visible { opacity:1; }
+  .bg-stars { position:absolute; inset:0; background-image:radial-gradient(1px 1px at 20% 30%,rgba(255,255,255,0.6) 0%,transparent 100%),radial-gradient(1px 1px at 60% 10%,rgba(255,255,255,0.4) 0%,transparent 100%),radial-gradient(1px 1px at 80% 50%,rgba(255,255,255,0.5) 0%,transparent 100%),radial-gradient(1px 1px at 40% 70%,rgba(255,255,255,0.3) 0%,transparent 100%),radial-gradient(1px 1px at 70% 80%,rgba(255,255,255,0.4) 0%,transparent 100%),radial-gradient(1px 1px at 10% 60%,rgba(255,255,255,0.3) 0%,transparent 100%),radial-gradient(1px 1px at 90% 20%,rgba(255,255,255,0.5) 0%,transparent 100%); opacity:0; transition:opacity 1.5s ease; }
+  .bg-stars.visible { opacity:1; }
+  .window-light { position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:280px; height:340px; background:linear-gradient(180deg,rgba(180,160,220,0.08) 0%,rgba(100,80,160,0.04) 100%); border-top:1px solid rgba(180,160,220,0.15); border-left:1px solid rgba(180,160,220,0.1); border-right:1px solid rgba(180,160,220,0.1); border-radius:2px 2px 0 0; }
+  .window-cross { position:absolute; top:0; left:50%; transform:translateX(-50%); width:1px; height:100%; background:rgba(180,160,220,0.12); }
+  .window-cross::after { content:''; position:absolute; top:40%; left:-70px; width:140px; height:1px; background:rgba(180,160,220,0.12); }
+  #chara { position:absolute; bottom:0; left:50%; transform:translateX(-50%) translateY(20px); width:auto; height:85%; display:flex; align-items:flex-end; justify-content:center; opacity:0; transition:opacity 0.8s ease, transform 0.8s ease; }
+  #chara.visible { opacity:1; transform:translateX(-50%) translateY(0); }
+  #chara-img { height:100%; width:auto; display:none; filter:drop-shadow(0 0 40px rgba(200,170,240,0.12)); }
+  #chara-img.visible { display:block; }
+  .chara-svg { width:160px; height:340px; filter:drop-shadow(0 0 30px rgba(200,170,240,0.15)); }
+  #textbox { position:relative; padding:0 16px 16px; z-index:10; }
+  .tb-inner { background:rgba(12,10,18,0.88); border:0.5px solid rgba(200,170,240,0.2); border-radius:8px; padding:16px 20px 14px; position:relative; cursor:pointer; height:160px; display:flex; flex-direction:column; }
+  .tb-inner::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(200,170,240,0.3),transparent); }
+  #nameplate { font-family:'Noto Serif JP',serif; font-size:13px; font-weight:500; color:#c8a8e8; letter-spacing:0.15em; margin-bottom:8px; min-height:18px; flex-shrink:0; display:flex; align-items:center; gap:8px; }
+  #dialogue { font-family:'Noto Serif JP',serif; font-size:15px; font-weight:300; line-height:1.9; color:#f0eae8; letter-spacing:0.05em; flex:1; overflow:hidden; }
+  #click-hint { position:absolute; bottom:10px; right:16px; font-size:11px; color:rgba(200,170,240,0.4); animation:blink 2s ease-in-out infinite; }
+  @keyframes blink { 0%,100%{opacity:0.4;} 50%{opacity:0.9;} }
+  #chapter-title { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; z-index:25; opacity:0; pointer-events:none; transition:opacity 0.8s ease; }
+  #chapter-title.show { opacity:1; }
+  #chapter-title .ch-label { font-size:11px; letter-spacing:0.3em; color:rgba(200,170,240,0.5); margin-bottom:8px; font-family:'Noto Sans JP',sans-serif; }
+  #chapter-title .ch-text { font-family:'Noto Serif JP',serif; font-size:22px; font-weight:300; color:#f0eae8; letter-spacing:0.1em; }
+  #heart-effect { position:absolute; top:30%; left:50%; transform:translate(-50%,-50%); font-size:28px; opacity:0; pointer-events:none; transition:opacity 0.3s ease, transform 0.8s ease; z-index:30; }
+  #heart-effect.show { opacity:1; transform:translate(-50%,-80%); }
+  #menu-bar { position:absolute; top:10px; right:14px; display:flex; gap:8px; z-index:30; }
+  .menu-btn { background:rgba(12,10,18,0.6); border:0.5px solid rgba(200,170,240,0.2); border-radius:4px; padding:4px 10px; font-size:11px; color:rgba(200,170,240,0.6); cursor:pointer; letter-spacing:0.1em; transition:all 0.2s ease; font-family:'Noto Sans JP',sans-serif; }
+  .menu-btn:hover { background:rgba(200,170,240,0.1); color:rgba(200,170,240,0.9); }
+  #voice-panel { position:absolute; top:10px; left:14px; z-index:30; display:flex; flex-direction:column; gap:4px; }
+  #voice-indicator { background:rgba(12,10,18,0.7); border:0.5px solid rgba(200,170,240,0.2); border-radius:4px; padding:4px 10px; font-size:10px; color:rgba(200,170,240,0.4); letter-spacing:0.08em; display:flex; align-items:center; gap:5px; font-family:'Noto Sans JP',sans-serif; }
+  .voice-dot { width:5px; height:5px; border-radius:50%; background:rgba(200,170,240,0.3); transition:background 0.3s ease; }
+  .voice-dot.active { background:#c8a8e8; animation:pulse 0.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .voice-sub-btn { background:rgba(12,10,18,0.7); border:0.5px solid rgba(200,170,240,0.25); border-radius:4px; padding:4px 10px; font-size:10px; color:rgba(200,170,240,0.5); cursor:pointer; letter-spacing:0.08em; transition:all 0.2s ease; text-align:center; font-family:'Noto Sans JP',sans-serif; }
+  .voice-sub-btn:hover { background:rgba(200,170,240,0.1); color:rgba(200,170,240,0.9); }
+  .narration { color:rgba(220,210,235,0.75); font-style:italic; }
+  .play-btn { background:rgba(200,170,240,0.15); border:0.5px solid rgba(200,170,240,0.3); border-radius:3px; padding:1px 7px; font-size:10px; color:rgba(200,170,240,0.7); cursor:pointer; transition:all 0.2s ease; font-family:'Noto Sans JP',sans-serif; }
+  .play-btn:hover { background:rgba(200,170,240,0.25); color:#c8a8e8; }
+  #voice-help { position:absolute; bottom:80px; left:14px; background:rgba(12,10,18,0.95); border:0.5px solid rgba(200,170,240,0.25); border-radius:8px; padding:14px 18px; font-size:12px; color:rgba(220,210,235,0.7); line-height:1.8; letter-spacing:0.05em; display:none; z-index:40; width:300px; font-family:'Noto Sans JP',sans-serif; }
+  #voice-help.show { display:block; }
+  #voice-help .help-title { font-size:13px; color:#c8a8e8; margin-bottom:8px; font-weight:500; }
+  #voice-help .close-help { float:right; cursor:pointer; color:rgba(200,170,240,0.4); font-size:14px; }
+  #game-title-screen { position:absolute; inset:0; background:#0d0d12; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:50; transition:opacity 1s ease; }
+  #game-title-screen .main-title { font-family:'Noto Serif JP',serif; font-size:28px; font-weight:300; color:#f0eae8; letter-spacing:0.2em; margin-bottom:8px; }
+  #game-title-screen .sub-title { font-size:11px; color:rgba(200,170,240,0.4); letter-spacing:0.3em; margin-bottom:60px; font-family:'Noto Sans JP',sans-serif; }
+  #game-title-screen .start-btn { font-family:'Noto Serif JP',serif; font-size:14px; color:rgba(200,170,240,0.7); border:0.5px solid rgba(200,170,240,0.3); padding:10px 32px; border-radius:4px; cursor:pointer; letter-spacing:0.2em; transition:all 0.3s ease; background:transparent; }
+  #game-title-screen .start-btn:hover { background:rgba(200,170,240,0.1); color:#f0eae8; border-color:rgba(200,170,240,0.6); }
+  #game-title-screen .deco-line { width:60px; height:0.5px; background:rgba(200,170,240,0.2); margin:20px auto; }
+  #game-title-screen .cv-credit { font-size:10px; color:rgba(200,170,240,0.25); letter-spacing:0.15em; margin-top:40px; font-family:'Noto Sans JP',sans-serif; }
+  @media (hover:none) { .menu-btn:active{background:rgba(200,170,240,0.1);} .voice-sub-btn:active{background:rgba(200,170,240,0.1);} }
+  @media (max-width:480px) {
+    #chara{height:70%;} #dialogue{font-size:14px;line-height:1.8;min-height:48px;} #nameplate{font-size:12px;}
+    .tb-inner{padding:12px 14px 10px;height:150px;} #textbox{padding:0 10px 12px;} #click-hint{font-size:10px;bottom:8px;right:12px;}
+    #voice-panel{top:8px;left:10px;} #voice-indicator{font-size:9px;padding:3px 8px;} .voice-sub-btn{font-size:9px;padding:3px 8px;}
+    #menu-bar{top:8px;right:10px;} .menu-btn{font-size:10px;padding:3px 8px;}
+    #game-title-screen .main-title{font-size:22px;} #game-title-screen .sub-title{font-size:10px;margin-bottom:40px;}
+    #game-title-screen .start-btn{font-size:13px;padding:12px 28px;}
+    #voice-help{width:calc(100vw - 28px);left:14px;bottom:140px;} #chapter-title .ch-text{font-size:18px;}
+  }
+  @media (min-width:481px) and (max-width:768px) { #chara{height:78%;} #dialogue{font-size:15px;} }
+  @media (min-width:769px) {
+    #chara{height:88%;} #dialogue{font-size:16px;line-height:2;}
+    .tb-inner{padding:18px 28px 16px;height:170px;} #textbox{padding:0 24px 20px;max-width:900px;margin:0 auto;width:100%;}
+  }
+</style>
+</head>
+<body>
+
+<div id="game-title-screen">
+  <div class="main-title">隣に、君がいる</div>
+  <div class="sub-title">a yuri visual novel</div>
+  <div class="deco-line"></div>
+  <button class="start-btn" onclick="startGame()">— はじめる —</button>
+  <div class="cv-credit">CV 白石 葵：霧崎メア</div>
+</div>
+
+<div id="game">
+  <div id="scene">
+    <div id="bg" class="bg-office">
+      <div class="bg-stars" id="stars"></div>
+    </div>
+    <div id="bg-img"></div>
+    <div id="chara">
+      <img id="chara-img" src="" alt="白石 葵">
+      <svg class="chara-svg" id="chara-svg" viewBox="0 0 160 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="hg" cx="50%" cy="20%" r="60%"><stop offset="0%" stop-color="#3a2a4a"/><stop offset="100%" stop-color="#1a1020"/></radialGradient>
+          <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f2d9c8"/><stop offset="100%" stop-color="#e8c9b8"/></linearGradient>
+          <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2a1f38"/><stop offset="100%" stop-color="#1a1228"/></linearGradient>
+        </defs>
+        <rect x="42" y="200" width="76" height="140" rx="4" fill="url(#cg)" opacity="0.9"/>
+        <path d="M68 200 L80 218 L92 200" stroke="rgba(200,170,240,0.3)" stroke-width="1" fill="none"/>
+        <rect x="20" y="205" width="22" height="80" rx="11" fill="url(#cg)" opacity="0.85"/>
+        <rect x="118" y="205" width="22" height="80" rx="11" fill="url(#cg)" opacity="0.85"/>
+        <ellipse cx="31" cy="290" rx="11" ry="9" fill="url(#sg)"/>
+        <ellipse cx="129" cy="290" rx="11" ry="9" fill="url(#sg)"/>
+        <rect x="70" y="175" width="20" height="28" rx="6" fill="url(#sg)"/>
+        <ellipse cx="80" cy="145" rx="38" ry="42" fill="url(#sg)"/>
+        <ellipse cx="80" cy="125" rx="40" ry="44" fill="url(#hg)"/>
+        <path d="M58 138 Q66 133 74 138" stroke="#3a2a4a" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M86 138 Q94 133 102 138" stroke="#3a2a4a" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <ellipse cx="66" cy="140" rx="5" ry="4" fill="#3a2a4a"/>
+        <ellipse cx="94" cy="140" rx="5" ry="4" fill="#3a2a4a"/>
+        <ellipse cx="67" cy="139" rx="1.5" ry="1.5" fill="rgba(255,255,255,0.7)"/>
+        <ellipse cx="95" cy="139" rx="1.5" ry="1.5" fill="rgba(255,255,255,0.7)"/>
+        <path d="M58 137 L55 133" stroke="#3a2a4a" stroke-width="1.2"/>
+        <path d="M102 137 L105 133" stroke="#3a2a4a" stroke-width="1.2"/>
+        <path d="M78 152 Q80 156 82 152" stroke="rgba(180,140,120,0.5)" stroke-width="1" fill="none"/>
+        <path d="M73 163 Q80 167 87 163" stroke="rgba(180,120,110,0.7)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+        <path d="M42 115 Q50 88 80 85 Q110 88 118 115" fill="url(#hg)"/>
+        <path d="M42 115 Q38 130 40 155 Q45 145 48 135 Q46 120 50 110" fill="url(#hg)"/>
+        <path d="M118 115 Q122 130 120 155 Q115 145 112 135 Q114 120 110 110" fill="url(#hg)"/>
+        <path d="M48 105 Q44 125 46 148" fill="url(#hg)"/>
+        <path d="M112 105 Q116 125 114 148" fill="url(#hg)"/>
+        <path d="M65 90 Q72 87 80 88" stroke="rgba(180,150,220,0.2)" stroke-width="3" stroke-linecap="round"/>
+        <ellipse cx="57" cy="150" rx="8" ry="4" fill="rgba(240,150,130,0.12)"/>
+        <ellipse cx="103" cy="150" rx="8" ry="4" fill="rgba(240,150,130,0.12)"/>
+      </svg>
+    </div>
+    <div id="chapter-title">
+      <div class="ch-label" id="ch-label"></div>
+      <div class="ch-text" id="ch-text"></div>
+    </div>
+    <div id="heart-effect">♡</div>
+  </div>
+
+  <div id="voice-panel">
+    <div id="voice-indicator"><div class="voice-dot" id="vdot"></div><span id="voice-label">VOICE OFF</span></div>
+    <div class="voice-sub-btn" onclick="document.getElementById('vfile').click()">＋ 音声を読み込む</div>
+    <input type="file" id="vfile" accept="audio/*" multiple onchange="loadVoice(event)" style="display:none">
+    <div class="voice-sub-btn" onclick="toggleHelp()" style="font-size:9px;opacity:0.6;">収録台本を見る</div>
+  </div>
+
+  <div id="menu-bar">
+    <div class="menu-btn" onclick="restartGame()">TOP</div>
+  </div>
+
+  <div id="voice-help">
+    <div class="help-title">🎙️ 収録台本<span class="close-help" onclick="toggleHelp()">✕</span></div>
+    <div style="margin-bottom:4px;color:rgba(200,170,240,0.5);font-size:11px;">CV 白石 葵：霧崎メア</div>
+    <div style="margin-bottom:8px;color:rgba(200,170,240,0.4);font-size:10px;">ファイル名を以下に合わせてください</div>
+    <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:11px;">
+      <span style="color:#c8a8e8;">aoi_01</span><span>白石 葵です。前職では営業企画を…よろしくお願いします。</span>
+      <span style="color:#c8a8e8;">aoi_02</span><span>一ノ瀬さん、この数字、先週のと合ってますか。</span>
+      <span style="color:#c8a8e8;">aoi_03</span><span>お願いできますか。</span>
+      <span style="color:#c8a8e8;">aoi_04</span><span>このシステム、入力項目多くないですか。</span>
+      <span style="color:#c8a8e8;">aoi_05</span><span>あのミス、構造的な問題ですよね。…一ノ瀬さん、一緒にどうですか。</span>
+      <span style="color:#c8a8e8;">aoi_06</span><span>一ノ瀬さんって、この会社長いんですか。…地味ですね。</span>
+      <span style="color:#c8a8e8;">aoi_07</span><span>一ノ瀬さんは、ここ好きですか。…いいですね、それ。</span>
+      <span style="color:#c8a8e8;">aoi_08</span><span>実は、部屋のことで困っていて。…絶対に迷惑はかけません。</span>
+      <span style="color:#c8a8e8;">aoi_09</span><span>……本当にいいんですか。</span>
+      <span style="color:#c8a8e8;">aoi_10</span><span>……ありがとうございます。本当に、助かります。</span>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:rgba(200,170,240,0.35);line-height:1.7;">mp3 / wav / m4a 対応</div>
+  </div>
+
+  <div id="textbox">
+    <div class="tb-inner" onclick="advance()">
+      <div id="nameplate"></div>
+      <div id="dialogue"></div>
+      <div id="click-hint">▼</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const IMG='img/';
+const voiceFiles={};
+
+function loadVoice(e){
+  Array.from(e.target.files).forEach(f=>{
+    const m=f.name.match(/aoi_0?(\d+)/i);
+    if(m) voiceFiles['aoi_'+String(parseInt(m[1])).padStart(2,'0')]=URL.createObjectURL(f);
+  });
+  const c=Object.keys(voiceFiles).length;
+  document.getElementById('voice-label').textContent=c+'件 読み込み済';
+  document.getElementById('vdot').style.background='rgba(200,170,240,0.6)';
+}
+function playVoice(key){
+  if(!voiceFiles[key]) return;
+  const a=new Audio(voiceFiles[key]);
+  a.play();
+  document.getElementById('vdot').classList.add('active');
+  document.getElementById('voice-label').textContent='♪ CV：霧崎メア';
+  a.onended=()=>{
+    document.getElementById('vdot').classList.remove('active');
+    document.getElementById('voice-label').textContent=Object.keys(voiceFiles).length+'件 読み込み済';
+  };
+}
+function toggleHelp(){ document.getElementById('voice-help').classList.toggle('show'); }
+function setBg(cls,stars){
+  document.getElementById('bg').className=cls;
+  document.getElementById('stars').classList.toggle('visible',!!stars);
+}
+function setChara(show){
+  const charaEl = document.getElementById('chara');
+  const img = document.getElementById('chara-img');
+  const svg = document.getElementById('chara-svg');
+  if(show){
+    charaEl.classList.add('visible');
+  } else {
+    charaEl.classList.remove('visible');
+    img.classList.remove('visible');
+    img.src='';
+    svg.style.display='none';
+  }
+}
+function setBgImage(f){
+  const el=document.getElementById('bg-img');
+  if(f){
+    el.style.backgroundImage=`url(${IMG}${f})`;
+    el.classList.add('visible');
+  } else {
+    el.classList.remove('visible');
+    setTimeout(()=>{ if(!el.classList.contains('visible')) el.style.backgroundImage=''; }, 1200);
+  }
+}
+function setCharaImage(f){
+  const img=document.getElementById('chara-img');
+  const svg=document.getElementById('chara-svg');
+  const charaEl=document.getElementById('chara');
+  if(f && charaEl.classList.contains('visible')){
+    img.src=IMG+f;
+    img.onload=()=>img.classList.add('visible');
+    svg.style.display='none';
+  } else {
+    img.classList.remove('visible');
+    img.src='';
+    svg.style.display='none';
+  }
+}
+function showHeart(){
+  const h=document.getElementById('heart-effect');
+  h.classList.add('show');
+  setTimeout(()=>h.classList.remove('show'),1200);
+}
+function showChapterTitle(label,text){
+  return new Promise(res=>{
+    const el=document.getElementById('chapter-title');
+    document.getElementById('ch-label').textContent=label;
+    document.getElementById('ch-text').textContent=text;
+    el.classList.add('show');
+    setTimeout(()=>{el.classList.remove('show');setTimeout(res,800);},2800);
+  });
+}
+
+let isTyping=false,typeTimer=null,typeResolve=null;
+function typeText(el,text,speed=38){
+  return new Promise(res=>{
+    isTyping=true;typeResolve=res;el.innerHTML='';
+    const lines=text.split('\n');
+    const spans=lines.map(()=>document.createElement('span'));
+    spans.forEach((s,i)=>{el.appendChild(s);if(i<spans.length-1)el.appendChild(document.createElement('br'));});
+    let li=0,ci=0;
+    function tick(){
+      if(li>=lines.length){isTyping=false;res();return;}
+      spans[li].textContent+=lines[li][ci]||'';ci++;
+      if(ci>=lines[li].length){li++;ci=0;}
+      typeTimer=setTimeout(tick,speed);
+    }
+    tick();
+  });
+}
+function skipType(el,text){
+  clearTimeout(typeTimer);isTyping=false;el.innerHTML='';
+  text.split('\n').forEach((line,i,arr)=>{
+    const s=document.createElement('span');s.textContent=line;el.appendChild(s);
+    if(i<arr.length-1)el.appendChild(document.createElement('br'));
+  });
+  if(typeResolve){typeResolve();typeResolve=null;}
+}
+
+// ========== SCRIPT ==========
+const script = [
+  // --- PROLOGUE ---
+  {chapterLabel:'Prologue', chapterText:'まさか、君が', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {n:'四月の第二週。\n月曜の朝礼は、いつも通り十分で終わった。\n最後に上司が言った。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {s:'上司', t:'来週から、中途採用の方が一名加わります。白石 葵さんです。営業企画の経験があるので、即戦力として活躍してもらう予定です。よろしくお願いします。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {n:'それだけだった。\nみんな特に反応もなく、各自の席に戻っていった。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {n:'澪も戻ろうとした。\nでも、足が一瞬だけ止まった。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {s:'澪', t:'（——白石、葵。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {n:'まさか、と思った。\nでも、そんなに珍しい名前でもない。\n同じ名前の別人なんて、いくらでもいる。\n四年も経ってるんだし。\nそもそも、もう終わったことだし。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {s:'澪', t:'（違う。絶対違う。気にしない。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {n:'自分の席に座って、パソコンを開いた。\n画面の文字が、しばらく頭に入ってこなかった。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {n:'次の月曜日。\n澪はいつもより十分早く出社した。\n理由は特にない、と自分に言い聞かせた。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {n:'午前十時。会議室に全員が集まった。\nドアが開いた。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {s:'澪', t:'（——あ。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'一瞬で、わかった。\n黒い髪。静かな目。\n少しだけ前より大人になった顔。\nでも、間違えるわけがなかった。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'白石 葵。\n学生の頃、ずっと好きだった人。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'白石 葵です。前職では営業企画を担当していました。まだ慣れないことも多いと思いますが、迷惑をかけないよう努めます。よろしくお願いします。', voice:'aoi_01', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'短い。でも、変に媚びていない。\n愛想笑いも、緊張した様子もない。\nただ、静かにそこに立っていた。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'澪は気づかれないように、ゆっくり息を吐いた。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（覚えてないよな。）\n（同じクラスだったけど、そんなに話したわけじゃない。）\n（私が勝手に好きだっただけだし。）\n（一度も話しかけられなかったし。）\n（卒業の日に、心の中でちゃんとお別れしたし。）\n（せいせいした、って思ったし。）\n（——本当に？）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'自分でツッコんで、目を閉じた。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（……うるさい。終わったことだから。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'その日、白石さんの隣の席が澪に割り振られた。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（なんで。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'午後。葵は黙って引き継ぎ資料を読んでいた。\n澪は自分の仕事をしながら、気配だけを感じていた。\n葵はほとんど動かない。\nコーヒーも飲まず、スマホも触らず、ただ読んでいる。\n集中すると完全に静止する人だった。\n学生の頃もそうだった。\n授業中、ずっと黒板を見ていた。\n横顔がきれいだと思って、ノートに落書きしたことがある。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（……思い出さなくていいから。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'昼休み。みんなが挨拶しに行く中、葵は一人でパソコンに向かっていた。\nお弁当を広げながら、なんとなく横目で見ていた。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（変わってないな。昔から、あんな感じだった。）\n（クラスでも、誰かと群れてるところ見たことなかった。）\n（お昼も一人で食べてて、でも全然寂しそうじゃなくて。）\n（むしろ、一人の方が好きなんだろうなって思ってた。）\n（それが、なんか、好きだったんだよな——）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'思考を止めた。\nお弁当のふたを閉めた。\n食欲がなくなった。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（やめやめ。終わったことだから。）', narration:true, bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:false},
+  {n:'帰り際。エレベーターのボタンを押したとき。\n後ろから声がした。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:false},
+  {s:'葵', t:'一ノ瀬さん。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'振り返ると、葵が立っていた。\nバッグを肩にかけて、まっすぐ澪を見ていた。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'え……はい、なんですか？', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'今日の引き継ぎ資料、わかりやすくまとめてくれていましたね。助かりました。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'あ……ありがとうございます。私が作ったわけじゃないんですけど、去年整理し直したやつで。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'そうなんですか。でも、読みやすかったです。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'エレベーターが来た。\n二人で乗り込んで、一階で扉が開いて、ロビーで別れた。\n葵は「お疲れ様でした」とだけ言って、先に出ていった。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:false},
+  {s:'澪', t:'（覚えてない。やっぱり、覚えてない。）\n（当たり前だよ。向こうは何も知らないんだから。）\n（私が一方的に好きだっただけで、葵にとっては赤の他人で。）\n（それは昔も今も、変わらない。）', narration:true, bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:false},
+  {n:'わかっていた。\nちゃんとわかっていた。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:false},
+  {s:'澪', t:'（なんでまだ、心臓がうるさいんだろ。）', narration:true, bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {n:'その夜、お風呂に入りながら、ずっとそのことを考えていた。\nシャワーを浴びながら、葵の声を思い出した。\n「一ノ瀬さん」って呼ばれた瞬間を、何度も再生してしまった。\nやめろ、と思った。\nでも止まらなかった。', bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {s:'澪', t:'（もう終わったはずだった。）\n（卒業の日、ちゃんと心の中で別れを告げた。）\n（せいせいした、って思った。）\n（四年間、一度も思い出さなかった。）\n（——本当に？）\n（……まずい。全然、終わってなかった。）', narration:true, bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+
+  // --- CHAPTER 1 ---
+  {chapterLabel:'Chapter 1', chapterText:'距離の測り方', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {n:'葵が来てから、二週間が経った。\n澪は葵に気づかれないように、気をつけていた。\n余計に話しかけない。目を合わせすぎない。\n名前を呼ばれてもびっくりしない。\n普通の同僚として、普通に接する。\nそれだけでよかった。\n——そのはずだった。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {n:'月曜の朝。出社したら葵はもう席についていた。\n定時より三十分早い。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（早いな。……昔からこういう人だっけ。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'思い出そうとして、やめた。\n思い出すたびに、ろくなことにならない。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'午前中、隣から静かなキーボードの音が聞こえていた。\n葵は集中するとまったく動かない。\n画面だけ見て、コーヒーも飲まずに打ち続ける。\n澪はそれを横目で見ながら、自分の仕事をした。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'一ノ瀬さん、この数字、先週のと合ってますか。', voice:'aoi_02', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'ちょっと待って……あ、ここ一桁ずれてる。先週のファイル、送りましょうか？', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'お願いできますか。', voice:'aoi_03', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'今送ります。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'ファイルを送ったら、三分後にチャットが来た。\n「ありがとうございます。助かりました。」\nそれだけだった。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（また私に聞いてきた。他の人には聞かないのに。）\n（……席が隣だから。それだけ。）\n（うん、それだけ。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'そういうことが、何度かあった。\n資料の確認。会議室の場所。備品の置き場所。\nいつも、静かな声で「一ノ瀬さん」と呼んできた。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（名前、呼ばれるたびにびっくりしちゃうの、なんとかならないかな。）\n（三年目なのに、新人みたいな心臓してる。）\n（情けない。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'火曜日の午後。葵が小さなため息をついた。\n珍しかった。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'どうかしました？', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'……このシステム、入力項目多くないですか。', voice:'aoi_04', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'あー……多いですよね。前の担当者が作ったやつで、誰も変えようとしないんですよ。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'非効率ですね。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'そうなんですよ。私もずっとそう思ってて。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'……変えたら怒られますか。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（笑いながら）提案するだけなら、たぶん大丈夫ですよ。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'そうですか。じゃあ考えてみます。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（笑ってしまった。）\n（葵と、普通に話してしまった。）\n（……ダメだ。距離縮めたらダメなのに。）', narration:true, bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'水曜日。チームで小さなミスがあって、午後から空気が重かった。\n関係者がバタバタしている中、葵は黙々と自分の仕事を続けていた。\n夕方、みんなが帰り始めた頃、葵がぽつりと言った。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'あのミス、構造的な問題ですよね。個人のせいにしても、また起きますよ。\n来週の定例で、フローを見直す提案、してみようと思っていて。……一ノ瀬さん、一緒にどうですか。', voice:'aoi_05', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（え。）\n（誘われた。）\n（仕事の話だけど、誘われた。）\n（落ち着け。落ち着け、私。）', narration:true, bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'……うん、やろう。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'ありがとうございます。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'帰り道、ずっとにやけてしまって、自分が嫌になった。', bg:'bg-night', bgImg:'bg_street.png', stars:true, chara:false},
+  {s:'澪', t:'（仕事の話だから。普通のことだから。）\n（「一緒にどうですか」って、誰にでも言える言葉だから。）\n（わかってる。わかってるのに。）', narration:true, bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {n:'木曜日の昼休み。食堂が混んでいて、葵が一人でトレーを持ったまま立っているのが見えた。\nどこに座ろうか探している。\n行こうか迷って、気づいたら声をかけていた。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'白石さん、こっち座ります？', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'……いいんですか。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'どうぞどうぞ。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'向かい合って食べた。\n最初はほとんど無言だった。\n葵はごはんを食べながら、スマホも見ずに、ただ食べていた。\n変な人だな、と思った。でも嫌じゃなかった。\nむしろ、一緒にいて不思議と落ち着いた。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'一ノ瀬さんって、この会社長いんですか。\n……四年。なんか、違うと思って出てきました。うまく言えないんですけど、やってることが自分じゃなくていい気がして。ある日急に嫌になって辞めました。貯金使いながら半年くらいぼーっとしてから、また働こうと思って。……地味ですね。', voice:'aoi_06', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'地味じゃないですよ。なんか、いいなって思いました。ちゃんと自分の声聞けてる感じがして。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'一ノ瀬さんは、ここ好きですか。この会社。\n……いいですね、それ。', voice:'aoi_07', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（あ。）\n（この人、こういうこと話すんだ。）\n（クールに見えるけど、ちゃんと自分の気持ちがある人なんだ。）\n（昔から、そうだった気がする。）\n（授業中、先生に意見を言える人だった。）\n（みんなが黙ってるとき、一人だけ手を挙げてた。）\n（かっこいいと思ってた。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'思考を止めた。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（また思い出してる。やめろ。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'お昼が終わって、席に戻った。\n葵は「ごちそうさまでした」と言って、すぐに仕事に戻った。\n特別なことは何もなかった。\nただのお昼ご飯だった。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（……全然、終わってない。）\n（むしろ、どんどんひどくなってる。）\n（まずい。本当にまずい。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'金曜日の夕方。葵と二人で、定例会議用の資料を作った。\n葵は無駄なことを言わない。\nでも、必要なことは全部言う。\n澪が「ここどうしますか」と聞くと、必ず自分の考えを答えた。\n「どっちでもいいです」とは言わなかった。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（こういう人、一緒に仕事してて気持ちいいな。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'そう思ってから、ちょっと悲しくなった。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（仕事の話だけしてれば、普通に好きになれる人なのに。）\n（もう、なってるけど。）', narration:true, bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'二時間かけて資料が完成した。\n葵が「ありがとうございました」と頭を下げた。\nほんの少しだけ、いつもより柔らかい声だった。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（……気のせいじゃないといいな。）\n（って、また。）', narration:true, bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'帰り道、夜風が少し冷たかった。\n澪は歩きながら、ため息をついた。', bg:'bg-night', bgImg:'bg_street.png', stars:true, chara:false},
+  {s:'澪', t:'（どうしよう。）\n（こんなに好きになるつもりじゃなかったのに。）\n（同じ職場で、毎日隣にいて、普通に話して。）\n（無理だよ、こんなの。）', narration:true, bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {n:'でも——', bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {s:'澪', t:'（明日も会えるんだよな。）', narration:true, bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {n:'そう思ったら、少しだけ足が軽くなった。\n自分がおかしくなりそうだった。', bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+
+  // --- CHAPTER 2 ---
+  {chapterLabel:'Chapter 2', chapterText:'一ヶ月だけ', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:false},
+  {n:'月曜日の朝。\nいつも通り出社したら、葵がデスクの前で立ったままスマホを見ていた。\n座らずに、ずっと画面を見ている。\n珍しかった。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'おはようございます。どうかしました？', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'……おはようございます。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'葵はスマホをしまって、席に座った。\nそれだけだった。\nでも、なんとなく、いつもと違う気がした。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（なんだろ。気になる。）\n（……気にしない。仕事しよ。）', narration:true, bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'午前中はお互い黙って仕事をした。\n昼前に、葵がため息をついた。\n今週二回目だ、と澪は思った。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'また、システムですか？', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'……いや、違います。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'それきり、葵は何も言わなかった。\n澪も聞かなかった。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'昼休み。食堂に向かおうとしたら、葵に呼び止められた。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'一ノ瀬さん、少しいいですか。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'はい。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'……相談があって。', bg:'bg-office', bgImg:'bg_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'葵が「相談」という言葉を使うのを、初めて聞いた気がした。\n澪は椅子を引いて、向き直った。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'実は、部屋のことで困っていて。今月末で今の仮住まいを出なきゃいけないんですけど、次に入りたい部屋に、まだ前の人が住んでて。入居できるのが来月頭になってしまって。ホテルも調べたんですけど、一ヶ月だと結構な金額になってしまって。他に知り合いもいないし、どうしようかと思って。\n……図々しいのはわかってます。でも、一ノ瀬さんしか頼める人がいなくて。もし嫌なら、全然断ってもらっていいので。一ヶ月だけ、部屋に置いてもらえませんか。生活費は必ず出します。家事も手伝います。絶対に迷惑はかけません。', voice:'aoi_08', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'まっすぐな目だった。\n逃げない目。\n昔からこういう人だった。\n頼むときも、ちゃんと目を見て頼む人だった。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（え。）\n（え、え、え。）\n（毎日、同じ部屋にいるってこと？）\n（朝も夜も？）\n（一ヶ月間？）', narration:true, bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'心臓がうるさかった。\n断る理由なんていくらでもあった。\n狭い。生活リズムが違う。そもそもまだそんなに仲良くない。\n全部、正当な理由だった。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（でも。）', narration:true, bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'葵が困っている。\n他に頼める人がいない。\nそれだけだった。\nそれだけで、もう答えは出ていた気がした。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'……わかった。いいよ。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'……本当に？', voice:'aoi_09', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'うん。でも、ちゃんとルール決めよう。お互い気持ちよく過ごせるように。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'葵', t:'……ありがとうございます。本当に、助かります。', voice:'aoi_10', heart:true, bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'葵が、少しだけ息を吐いた。\nほんの少し、肩の力が抜けた気がした。\nそんな顔、初めて見た。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {s:'澪', t:'（あ、この人にもこういう顔があるんだ。）', narration:true, bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:true, charaImg:'aoi_normal.png'},
+  {n:'そう思ったら、胸がぎゅっとなった。', bg:'bg-office', bgImg:'bg_evening_office.png', stars:false, chara:false},
+  {s:'澪', t:'（……私、何やってるんだろ。）\n（好きな人を、自分の部屋に住まわせるって。）\n（正気じゃない。）', narration:true, bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {n:'でも——', bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {s:'澪', t:'（後悔は、してなかった。）', narration:true, bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {n:'その夜、帰り道に一人でルールを考えた。\n光熱費は折半。\n冷蔵庫は共有していい。\nお風呂は時間をずらす。\n休日は干渉しない。', bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {n:'真面目にメモしながら、途中で手が止まった。', bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {s:'澪', t:'（葵が毎日うちにいる。）\n（ご飯食べて、お風呂入って、寝て。）\n（同じ空間で。）', narration:true, bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {n:'スマホを伏せた。\n天井を見た。', bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {s:'澪', t:'（一ヶ月、耐えられるかな。）\n（……耐えるって何を。）', narration:true, bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {n:'自分でツッコんで、布団をかぶった。', bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {s:'澪', t:'（絶対に、気づかれないようにしないと。）\n（普通の同僚として、普通に過ごす。）\n（それだけ。それだけでいい。）', narration:true, bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+  {n:'——一ヶ月のはずだった。', bg:'bg-night', bgImg:'bg_room.png', stars:true, chara:false},
+
+  // END
+  {type:'end', bg:'bg-evening', stars:true, chara:false},
+];
+
+let idx=0, currentScript=script;
+let pages=[], pageIdx=0;
+
+// テキストボックスに収まる行数を計算してページ分割
+function splitIntoPages(text, dial){
+  const lineHeight = parseFloat(getComputedStyle(dial).lineHeight) || 28;
+  const boxHeight = dial.clientHeight || 100;
+  const linesPerPage = Math.max(1, Math.floor(boxHeight / lineHeight));
+  const rawLines = text.split('\n');
+  const result = [];
+  let buf = [];
+  for(const line of rawLines){
+    buf.push(line);
+    if(buf.length >= linesPerPage){
+      result.push(buf.join('\n'));
+      buf = [];
+    }
+  }
+  if(buf.length) result.push(buf.join('\n'));
+  return result.length ? result : [text];
+}
+
+function startGame(){
+  const ts=document.getElementById('game-title-screen');
+  ts.style.opacity='0';
+  setTimeout(()=>ts.style.display='none',1000);
+  processScene(0);
+}
+
+function setNameplate(scene){
+  const name=document.getElementById('nameplate');
+  if(scene.s==='葵'){
+    name.innerHTML='<span>白石 葵</span><span style="font-size:10px;color:rgba(200,170,240,0.4);letter-spacing:0.05em;">CV：霧崎メア</span>';
+    if(scene.voice){
+      const pb=document.createElement('span');
+      pb.className='play-btn';pb.textContent='▶ 再生';
+      pb.onclick=(e)=>{e.stopPropagation();playVoice(scene.voice);};
+      name.appendChild(pb);
+    }
+  } else if(scene.s==='澪'){
+    name.innerHTML='<span style="color:rgba(180,220,210,0.8)">一ノ瀬 澪</span>';
+  } else if(scene.s==='上司'){
+    name.innerHTML='<span style="color:rgba(200,200,180,0.6)">上司</span>';
+  } else {
+    name.innerHTML='';
+  }
+}
+
+async function processScene(i){
+  idx=i;
+  const scene=currentScript[i];
+  if(!scene) return;
+
+  setBg(scene.bg||'bg-office', scene.stars);
+  setChara(!!scene.chara);
+  setBgImage(scene.bgImg||null);
+  setCharaImage(scene.charaImg||null);
+
+  if(scene.chapterLabel){
+    document.getElementById('nameplate').innerHTML='';
+    document.getElementById('dialogue').textContent='';
+    document.getElementById('click-hint').style.display='none';
+    await showChapterTitle(scene.chapterLabel, scene.chapterText);
+    document.getElementById('click-hint').style.display='block';
+    processScene(idx+1);
+    return;
+  }
+
+  if(scene.type==='end'){
+    document.getElementById('nameplate').innerHTML='';
+    document.getElementById('dialogue').innerHTML='<span style="color:rgba(200,170,240,0.6);font-style:italic;letter-spacing:0.15em;font-size:13px;">— Chapter 2　了 —</span><br><br><span style="font-size:12px;color:rgba(200,170,240,0.35);">Chapter 3 へ続く...</span>';
+    document.getElementById('click-hint').style.display='none';
+    return;
+  }
+
+  const dial=document.getElementById('dialogue');
+  const text=scene.t||scene.n||'';
+  dial.className=(scene.narration||scene.n)?'narration':'';
+  setNameplate(scene);
+
+  // ページ分割
+  pages = splitIntoPages(text, dial);
+  pageIdx = 0;
+
+  if(scene.voice) playVoice(scene.voice);
+  await showPage(scene, pages[0]);
+  if(scene.heart && pages.length===1) showHeart();
+}
+
+async function showPage(scene, text){
+  const dial=document.getElementById('dialogue');
+  await typeText(dial, text, 38);
+}
+
+async function advance(){
+  if(isTyping){
+    const scene=currentScript[idx];
+    const text=pages[pageIdx]||'';
+    if(text) skipType(document.getElementById('dialogue'), text);
+    return;
+  }
+
+  // まだページが残ってる
+  if(pageIdx < pages.length - 1){
+    pageIdx++;
+    const scene=currentScript[idx];
+    const dial=document.getElementById('dialogue');
+    dial.className=(scene.narration||scene.n)?'narration':'';
+    await showPage(scene, pages[pageIdx]);
+    if(scene.heart && pageIdx===pages.length-1) showHeart();
+    return;
+  }
+
+  // 次のシーンへ
+  const scene=currentScript[idx];
+  if(!scene||scene.type==='end') return;
+  processScene(idx+1);
+}
+
+function restartGame(){
+  idx=0; pages=[]; pageIdx=0;
+  document.getElementById('click-hint').style.display='block';
+  setChara(false);
+  const ts=document.getElementById('game-title-screen');
+  ts.style.display='flex';ts.style.opacity='1';
+}
+</script>
+</body>
+</html>
