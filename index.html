@@ -28,7 +28,7 @@
   #chara-img.visible { display:block; }
   .chara-svg { width:160px; height:340px; filter:drop-shadow(0 0 30px rgba(200,170,240,0.15)); }
   #textbox { position:relative; padding:0 16px 16px; z-index:10; }
-  .tb-inner { background:rgba(12,10,18,0.88); border:0.5px solid rgba(200,170,240,0.2); border-radius:8px; padding:16px 20px 14px; position:relative; cursor:pointer; height:160px; display:flex; flex-direction:column; }
+  .tb-inner { background:rgba(12,10,18,0.88); border:0.5px solid rgba(200,170,240,0.2); border-radius:8px; padding:16px 20px 14px; position:relative; cursor:pointer; height:200px; display:flex; flex-direction:column; }
   .tb-inner::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(200,170,240,0.3),transparent); }
   #nameplate { font-family:'Noto Serif JP',serif; font-size:13px; font-weight:500; color:#c8a8e8; letter-spacing:0.15em; margin-bottom:8px; min-height:18px; flex-shrink:0; display:flex; align-items:center; gap:8px; }
   #dialogue { font-family:'Noto Serif JP',serif; font-size:15px; font-weight:300; line-height:1.9; color:#f0eae8; letter-spacing:0.05em; flex:1; overflow:hidden; }
@@ -64,10 +64,22 @@
   #game-title-screen .start-btn:hover { background:rgba(200,170,240,0.1); color:#f0eae8; border-color:rgba(200,170,240,0.6); }
   #game-title-screen .deco-line { width:60px; height:0.5px; background:rgba(200,170,240,0.2); margin:20px auto; }
   #game-title-screen .cv-credit { font-size:10px; color:rgba(200,170,240,0.25); letter-spacing:0.15em; margin-top:40px; font-family:'Noto Sans JP',sans-serif; }
+
+  /* チャプターメニュー */
+  #chapter-menu-overlay { position:absolute; inset:0; background:rgba(5,4,10,0.92); z-index:60; display:none; align-items:center; justify-content:center; }
+  #chapter-menu-overlay.show { display:flex; }
+  #chapter-menu-box { background:rgba(12,10,18,0.98); border:0.5px solid rgba(200,170,240,0.25); border-radius:12px; padding:28px 32px; width:320px; max-width:90vw; }
+  #chapter-menu-box .menu-title { font-family:'Noto Serif JP',serif; font-size:14px; color:#c8a8e8; letter-spacing:0.2em; margin-bottom:20px; text-align:center; }
+  .ch-menu-btn { display:block; width:100%; background:transparent; border:none; border-bottom:0.5px solid rgba(200,170,240,0.1); padding:10px 4px; font-family:'Noto Serif JP',serif; font-size:13px; color:rgba(220,210,235,0.7); cursor:pointer; text-align:left; letter-spacing:0.05em; transition:all 0.2s ease; }
+  .ch-menu-btn:last-child { border-bottom:none; }
+  .ch-menu-btn:hover { color:#f0eae8; padding-left:10px; }
+  .ch-menu-btn .ch-num { color:rgba(200,170,240,0.4); font-size:11px; margin-right:8px; letter-spacing:0.15em; }
+  #chapter-menu-close { display:block; margin:16px auto 0; background:transparent; border:0.5px solid rgba(200,170,240,0.2); border-radius:4px; padding:6px 24px; font-size:11px; color:rgba(200,170,240,0.5); cursor:pointer; font-family:'Noto Sans JP',sans-serif; letter-spacing:0.1em; transition:all 0.2s ease; }
+  #chapter-menu-close:hover { background:rgba(200,170,240,0.1); color:rgba(200,170,240,0.9); }
   @media (hover:none) { .menu-btn:active{background:rgba(200,170,240,0.1);} .voice-sub-btn:active{background:rgba(200,170,240,0.1);} }
   @media (max-width:480px) {
     #chara{height:70%;} #dialogue{font-size:14px;line-height:1.8;min-height:48px;} #nameplate{font-size:12px;}
-    .tb-inner{padding:12px 14px 10px;height:150px;} #textbox{padding:0 10px 12px;} #click-hint{font-size:10px;bottom:8px;right:12px;}
+    .tb-inner{padding:12px 14px 10px;height:180px;} #textbox{padding:0 10px 12px;} #click-hint{font-size:10px;bottom:8px;right:12px;}
     #voice-panel{top:8px;left:10px;} #voice-indicator{font-size:9px;padding:3px 8px;} .voice-sub-btn{font-size:9px;padding:3px 8px;}
     #menu-bar{top:8px;right:10px;} .menu-btn{font-size:10px;padding:3px 8px;}
     #game-title-screen .main-title{font-size:22px;} #game-title-screen .sub-title{font-size:10px;margin-bottom:40px;}
@@ -77,7 +89,7 @@
   @media (min-width:481px) and (max-width:768px) { #chara{height:78%;} #dialogue{font-size:15px;} }
   @media (min-width:769px) {
     #chara{height:88%;} #dialogue{font-size:16px;line-height:2;}
-    .tb-inner{padding:18px 28px 16px;height:170px;} #textbox{padding:0 24px 20px;max-width:900px;margin:0 auto;width:100%;}
+    .tb-inner{padding:18px 28px 16px;height:220px;} #textbox{padding:0 24px 20px;max-width:900px;margin:0 auto;width:100%;}
   }
 </style>
 </head>
@@ -149,7 +161,26 @@
   </div>
 
   <div id="menu-bar">
+    <div class="menu-btn" onclick="openChapterMenu()">CHAPTER</div>
     <div class="menu-btn" onclick="restartGame()">TOP</div>
+  </div>
+
+  <div id="chapter-menu-overlay">
+    <div id="chapter-menu-box">
+      <div class="menu-title">— CHAPTER SELECT —</div>
+      <button class="ch-menu-btn" onclick="jumpToChapter('Prologue')"><span class="ch-num">Prologue</span>まさか、君が</button>
+      <button class="ch-menu-btn" onclick="jumpToChapter('Chapter 1')"><span class="ch-num">Chapter 1</span>距離の測り方</button>
+      <button class="ch-menu-btn" onclick="jumpToChapter('Chapter 2')"><span class="ch-num">Chapter 2</span>一ヶ月だけ</button>
+      <button class="ch-menu-btn" onclick="jumpToChapter('Chapter 3')"><span class="ch-num">Chapter 3</span>同じ屋根の下</button>
+      <button class="ch-menu-btn" onclick="jumpToChapter('Chapter 4')"><span class="ch-num">Chapter 4</span>近づきすぎた距離</button>
+      <button class="ch-menu-btn" onclick="jumpToChapter('Chapter 5')"><span class="ch-num">Chapter 5</span>あと少し</button>
+      <button class="ch-menu-btn" onclick="jumpToChapter('Chapter 6')"><span class="ch-num">Chapter 6</span>言わなきゃいけないこと</button>
+      <button class="ch-menu-btn" onclick="jumpToChapter('Chapter 7')"><span class="ch-num">Chapter 7</span>隣に、君がいる</button>
+      <button class="ch-menu-btn" onclick="jumpToChapter('Chapter 8')"><span class="ch-num">Chapter 8</span>おかえり、の続き</button>
+      <button class="ch-menu-btn" onclick="jumpToChapter('Chapter 9')"><span class="ch-num">Chapter 9</span>もう少しだけ</button>
+      <button class="ch-menu-btn" onclick="jumpToChapter('Chapter 10')"><span class="ch-num">Chapter 10</span>ただいま、おかえり</button>
+      <button id="chapter-menu-close" onclick="closeChapterMenu()">とじる</button>
+    </div>
   </div>
 
   <div id="voice-help">
@@ -294,20 +325,23 @@ function skipType(el,text){
 let idx=0, currentScript=script;
 let pages=[], pageIdx=0;
 
-// テキストボックスに収まる行数を計算してページ分割
+// 文字数ベースでページ分割（1ページあたり最大60文字×3行=約90文字）
 function splitIntoPages(text, dial){
-  const lineHeight = parseFloat(getComputedStyle(dial).lineHeight) || 28;
-  const boxHeight = dial.clientHeight || 100;
-  const linesPerPage = Math.max(1, Math.floor(boxHeight / lineHeight));
-  const rawLines = text.split('\n');
+  const maxCharsPerPage = 85;
+  const lines = text.split('\n');
   const result = [];
   let buf = [];
-  for(const line of rawLines){
-    buf.push(line);
-    if(buf.length >= linesPerPage){
+  let bufLen = 0;
+
+  for(const line of lines){
+    const lineLen = line.length + 1; // +1 for newline
+    if(bufLen + lineLen > maxCharsPerPage && buf.length > 0){
       result.push(buf.join('\n'));
       buf = [];
+      bufLen = 0;
     }
+    buf.push(line);
+    bufLen += lineLen;
   }
   if(buf.length) result.push(buf.join('\n'));
   return result.length ? result : [text];
@@ -414,8 +448,34 @@ function restartGame(){
   idx=0; pages=[]; pageIdx=0;
   document.getElementById('click-hint').style.display='block';
   setChara(false);
+  closeChapterMenu();
   const ts=document.getElementById('game-title-screen');
   ts.style.display='flex';ts.style.opacity='1';
+}
+
+function openChapterMenu(){
+  document.getElementById('chapter-menu-overlay').classList.add('show');
+}
+
+function closeChapterMenu(){
+  document.getElementById('chapter-menu-overlay').classList.remove('show');
+}
+
+function jumpToChapter(label){
+  closeChapterMenu();
+  // Find chapter scene index
+  const targetIdx = currentScript.findIndex(s => s.chapterLabel === label);
+  if(targetIdx === -1) return;
+  idx = targetIdx;
+  pages = []; pageIdx = 0;
+  document.getElementById('click-hint').style.display='block';
+  document.getElementById('choices').style.display='none';
+  setChara(false);
+  // Hide title screen if showing
+  const ts=document.getElementById('game-title-screen');
+  ts.style.opacity='0';
+  ts.style.display='none';
+  processScene(idx);
 }
 </script>
 </body>
