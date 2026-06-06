@@ -24,9 +24,8 @@
   .window-cross::after { content:''; position:absolute; top:40%; left:-70px; width:140px; height:1px; background:rgba(180,160,220,0.12); }
   #chara { position:absolute; bottom:0; left:50%; transform:translateX(-50%) translateY(20px); width:auto; height:85%; display:flex; align-items:flex-end; justify-content:center; opacity:0; transition:opacity 0.8s ease, transform 0.8s ease; }
   #chara.visible { opacity:1; transform:translateX(-50%) translateY(0); }
-  #chara-img { height:100%; width:auto; display:none; filter:drop-shadow(0 0 40px rgba(200,170,240,0.12)); }
-  #chara-img.visible { display:block; }
-  .chara-svg { width:160px; height:340px; filter:drop-shadow(0 0 30px rgba(200,170,240,0.15)); }
+  #chara-img { height:100%; width:auto; display:none; opacity:0; transition:opacity 0.35s ease; filter:drop-shadow(0 0 40px rgba(200,170,240,0.12)); }
+  #chara-img.visible { display:block; opacity:1; }
   #textbox { position:relative; padding:0 16px 16px; z-index:10; }
   .tb-inner { background:rgba(12,10,18,0.88); border:0.5px solid rgba(200,170,240,0.2); border-radius:8px; padding:16px 20px 14px; position:relative; cursor:pointer; height:200px; display:flex; flex-direction:column; }
   .tb-inner::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,rgba(200,170,240,0.3),transparent); }
@@ -38,6 +37,8 @@
   #chapter-title.show { opacity:1; }
   #chapter-title .ch-label { font-size:11px; letter-spacing:0.3em; color:rgba(200,170,240,0.5); margin-bottom:8px; font-family:'Noto Sans JP',sans-serif; }
   #chapter-title .ch-text { font-family:'Noto Serif JP',serif; font-size:22px; font-weight:300; color:#f0eae8; letter-spacing:0.1em; }
+  #scene-overlay { position:absolute; inset:0; background:#0d0d12; opacity:0; z-index:22; pointer-events:none; transition:opacity 0.5s ease; }
+  #scene-overlay.show { opacity:1; }
   #heart-effect { position:absolute; top:30%; left:50%; transform:translate(-50%,-50%); font-size:28px; opacity:0; pointer-events:none; transition:opacity 0.3s ease, transform 0.8s ease; z-index:30; }
   #heart-effect.show { opacity:1; transform:translate(-50%,-80%); }
   #menu-bar { position:absolute; top:10px; right:14px; display:flex; gap:8px; z-index:30; }
@@ -78,7 +79,7 @@
   #chapter-menu-close:hover { background:rgba(200,170,240,0.1); color:rgba(200,170,240,0.9); }
   @media (hover:none) { .menu-btn:active{background:rgba(200,170,240,0.1);} .voice-sub-btn:active{background:rgba(200,170,240,0.1);} }
   @media (max-width:480px) {
-    #chara{height:70%;} #dialogue{font-size:14px;line-height:1.8;min-height:48px;} #nameplate{font-size:12px;}
+    #chara{height:92%;} #dialogue{font-size:14px;line-height:1.8;min-height:48px;} #nameplate{font-size:12px;}
     .tb-inner{padding:12px 14px 10px;height:180px;} #textbox{padding:0 10px 12px;} #click-hint{font-size:10px;bottom:8px;right:12px;}
     #voice-panel{top:8px;left:10px;} #voice-indicator{font-size:9px;padding:3px 8px;} .voice-sub-btn{font-size:9px;padding:3px 8px;}
     #menu-bar{top:8px;right:10px;} .menu-btn{font-size:10px;padding:3px 8px;}
@@ -91,16 +92,50 @@
     #chara{height:88%;} #dialogue{font-size:16px;line-height:2;}
     .tb-inner{padding:18px 28px 16px;height:220px;} #textbox{padding:0 24px 20px;max-width:900px;margin:0 auto;width:100%;}
   }
+
+  /* ログ */
+  #log-overlay { position:absolute; inset:0; background:rgba(5,4,10,0.95); z-index:60; display:none; flex-direction:column; }
+  #log-overlay.show { display:flex; }
+  #log-box { flex:1; overflow-y:auto; padding:20px 24px 12px; }
+  #log-box::-webkit-scrollbar { width:3px; }
+  #log-box::-webkit-scrollbar-thumb { background:rgba(200,170,240,0.3); border-radius:2px; }
+  .log-entry { margin-bottom:12px; border-bottom:0.5px solid rgba(200,170,240,0.08); padding-bottom:12px; }
+  .log-speaker { font-size:11px; color:#c8a8e8; letter-spacing:0.15em; margin-bottom:3px; font-family:'Noto Sans JP',sans-serif; }
+  .log-text { font-family:'Noto Serif JP',serif; font-size:14px; font-weight:300; color:rgba(220,210,235,0.8); line-height:1.8; }
+  .log-text.narration { color:rgba(200,190,220,0.55); font-style:italic; }
+  #log-close { padding:10px; text-align:center; flex-shrink:0; }
+  #log-close button { background:transparent; border:0.5px solid rgba(200,170,240,0.2); border-radius:4px; padding:6px 28px; font-size:11px; color:rgba(200,170,240,0.5); cursor:pointer; font-family:'Noto Sans JP',sans-serif; }
+  /* セーブ/ロード */
+  #saveload-overlay { position:absolute; inset:0; background:rgba(5,4,10,0.92); z-index:60; display:none; align-items:center; justify-content:center; }
+  #saveload-overlay.show { display:flex; }
+  #saveload-box { background:rgba(12,10,18,0.98); border:0.5px solid rgba(200,170,240,0.25); border-radius:12px; padding:22px 26px; width:320px; max-width:90vw; }
+  #saveload-tabs { display:flex; margin-bottom:14px; border:0.5px solid rgba(200,170,240,0.2); border-radius:6px; overflow:hidden; }
+  .sl-tab { flex:1; padding:7px; text-align:center; font-size:12px; cursor:pointer; font-family:'Noto Sans JP',sans-serif; color:rgba(200,170,240,0.5); transition:all 0.2s; letter-spacing:0.1em; }
+  .sl-tab.active { background:rgba(200,170,240,0.15); color:#c8a8e8; }
+  #sl-title { font-family:'Noto Serif JP',serif; font-size:13px; color:#c8a8e8; letter-spacing:0.2em; margin-bottom:14px; text-align:center; }
+  .save-slot { display:flex; align-items:center; gap:10px; padding:9px 6px; border-bottom:0.5px solid rgba(200,170,240,0.08); border-radius:4px; transition:all 0.2s; }
+  .save-slot:last-of-type { border-bottom:none; }
+  .save-slot:hover { background:rgba(200,170,240,0.05); }
+  .slot-num { font-size:11px; color:rgba(200,170,240,0.35); width:20px; font-family:'Noto Sans JP',sans-serif; }
+  .slot-info { flex:1; }
+  .slot-name { font-family:'Noto Serif JP',serif; font-size:13px; color:rgba(220,210,235,0.7); }
+  .slot-empty { font-size:11px; color:rgba(200,170,240,0.3); font-family:'Noto Sans JP',sans-serif; }
+  .slot-date { font-size:10px; color:rgba(200,170,240,0.3); font-family:'Noto Sans JP',sans-serif; }
+  .slot-actions { display:flex; gap:5px; }
+  .slot-btn { background:rgba(200,170,240,0.08); border:0.5px solid rgba(200,170,240,0.2); border-radius:3px; padding:3px 9px; font-size:11px; color:rgba(200,170,240,0.6); cursor:pointer; font-family:'Noto Sans JP',sans-serif; transition:all 0.2s; }
+  .slot-btn:hover { background:rgba(200,170,240,0.18); color:#c8a8e8; }
+  .slot-btn.del { color:rgba(240,150,150,0.4); border-color:rgba(240,150,150,0.2); }
+  .slot-btn.del:hover { background:rgba(240,150,150,0.1); color:rgba(240,150,150,0.7); }
+  #saveload-close { display:block; margin:12px auto 0; background:transparent; border:0.5px solid rgba(200,170,240,0.2); border-radius:4px; padding:6px 24px; font-size:11px; color:rgba(200,170,240,0.5); cursor:pointer; font-family:'Noto Sans JP',sans-serif; }
 </style>
 </head>
 <body>
 
 <div id="game-title-screen">
   <div class="main-title">隣に、君がいる</div>
-  <div class="sub-title">a yuri visual novel</div>
+  
   <div class="deco-line"></div>
   <button class="start-btn" onclick="startGame()">— はじめる —</button>
-  <div class="cv-credit">CV 白石 葵：霧崎メア</div>
 </div>
 
 <div id="game">
@@ -111,56 +146,27 @@
     <div id="bg-img"></div>
     <div id="chara">
       <img id="chara-img" src="" alt="白石 葵">
-      <svg class="chara-svg" id="chara-svg" viewBox="0 0 160 340" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <radialGradient id="hg" cx="50%" cy="20%" r="60%"><stop offset="0%" stop-color="#3a2a4a"/><stop offset="100%" stop-color="#1a1020"/></radialGradient>
-          <linearGradient id="sg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f2d9c8"/><stop offset="100%" stop-color="#e8c9b8"/></linearGradient>
-          <linearGradient id="cg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#2a1f38"/><stop offset="100%" stop-color="#1a1228"/></linearGradient>
-        </defs>
-        <rect x="42" y="200" width="76" height="140" rx="4" fill="url(#cg)" opacity="0.9"/>
-        <path d="M68 200 L80 218 L92 200" stroke="rgba(200,170,240,0.3)" stroke-width="1" fill="none"/>
-        <rect x="20" y="205" width="22" height="80" rx="11" fill="url(#cg)" opacity="0.85"/>
-        <rect x="118" y="205" width="22" height="80" rx="11" fill="url(#cg)" opacity="0.85"/>
-        <ellipse cx="31" cy="290" rx="11" ry="9" fill="url(#sg)"/>
-        <ellipse cx="129" cy="290" rx="11" ry="9" fill="url(#sg)"/>
-        <rect x="70" y="175" width="20" height="28" rx="6" fill="url(#sg)"/>
-        <ellipse cx="80" cy="145" rx="38" ry="42" fill="url(#sg)"/>
-        <ellipse cx="80" cy="125" rx="40" ry="44" fill="url(#hg)"/>
-        <path d="M58 138 Q66 133 74 138" stroke="#3a2a4a" stroke-width="2" fill="none" stroke-linecap="round"/>
-        <path d="M86 138 Q94 133 102 138" stroke="#3a2a4a" stroke-width="2" fill="none" stroke-linecap="round"/>
-        <ellipse cx="66" cy="140" rx="5" ry="4" fill="#3a2a4a"/>
-        <ellipse cx="94" cy="140" rx="5" ry="4" fill="#3a2a4a"/>
-        <ellipse cx="67" cy="139" rx="1.5" ry="1.5" fill="rgba(255,255,255,0.7)"/>
-        <ellipse cx="95" cy="139" rx="1.5" ry="1.5" fill="rgba(255,255,255,0.7)"/>
-        <path d="M58 137 L55 133" stroke="#3a2a4a" stroke-width="1.2"/>
-        <path d="M102 137 L105 133" stroke="#3a2a4a" stroke-width="1.2"/>
-        <path d="M78 152 Q80 156 82 152" stroke="rgba(180,140,120,0.5)" stroke-width="1" fill="none"/>
-        <path d="M73 163 Q80 167 87 163" stroke="rgba(180,120,110,0.7)" stroke-width="1.2" fill="none" stroke-linecap="round"/>
-        <path d="M42 115 Q50 88 80 85 Q110 88 118 115" fill="url(#hg)"/>
-        <path d="M42 115 Q38 130 40 155 Q45 145 48 135 Q46 120 50 110" fill="url(#hg)"/>
-        <path d="M118 115 Q122 130 120 155 Q115 145 112 135 Q114 120 110 110" fill="url(#hg)"/>
-        <path d="M48 105 Q44 125 46 148" fill="url(#hg)"/>
-        <path d="M112 105 Q116 125 114 148" fill="url(#hg)"/>
-        <path d="M65 90 Q72 87 80 88" stroke="rgba(180,150,220,0.2)" stroke-width="3" stroke-linecap="round"/>
-        <ellipse cx="57" cy="150" rx="8" ry="4" fill="rgba(240,150,130,0.12)"/>
-        <ellipse cx="103" cy="150" rx="8" ry="4" fill="rgba(240,150,130,0.12)"/>
-      </svg>
     </div>
     <div id="chapter-title">
       <div class="ch-label" id="ch-label"></div>
       <div class="ch-text" id="ch-text"></div>
     </div>
     <div id="heart-effect">♡</div>
+    <div id="scene-overlay"></div>
   </div>
 
   <div id="voice-panel">
-    <div id="voice-indicator"><div class="voice-dot" id="vdot"></div><span id="voice-label">VOICE OFF</span></div>
-    <div class="voice-sub-btn" onclick="document.getElementById('vfile').click()">＋ 音声を読み込む</div>
+    <div id="voice-indicator" onclick="document.getElementById('vfile').click()" style="cursor:pointer;" title="音声ファイルを読み込む">
+      <div class="voice-dot" id="vdot"></div>
+      <span id="voice-label">VOICE OFF</span>
+    </div>
     <input type="file" id="vfile" accept="audio/*" multiple onchange="loadVoice(event)" style="display:none">
-    <div class="voice-sub-btn" onclick="toggleHelp()" style="font-size:9px;opacity:0.6;">収録台本を見る</div>
   </div>
 
   <div id="menu-bar">
+    <div class="menu-btn" onclick="openLog()">LOG</div>
+    <div class="menu-btn" onclick="openSaveLoad('save')">SAVE</div>
+    <div class="menu-btn" onclick="openSaveLoad('load')">LOAD</div>
     <div class="menu-btn" onclick="openChapterMenu()">CHAPTER</div>
     <div class="menu-btn" onclick="restartGame()">TOP</div>
   </div>
@@ -185,7 +191,6 @@
 
   <div id="voice-help">
     <div class="help-title">🎙️ 収録台本<span class="close-help" onclick="toggleHelp()">✕</span></div>
-    <div style="margin-bottom:4px;color:rgba(200,170,240,0.5);font-size:11px;">CV 白石 葵：霧崎メア</div>
     <div style="margin-bottom:8px;color:rgba(200,170,240,0.4);font-size:10px;">ファイル名を以下に合わせてください</div>
     <div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:11px;">
       <span style="color:#c8a8e8;">aoi_01</span><span>白石 葵です。前職では営業企画を…よろしくお願いします。</span>
@@ -209,6 +214,26 @@
       <div id="click-hint">▼</div>
     </div>
   </div>
+
+  <!-- ログ -->
+  <div id="log-overlay">
+    <div id="log-box"></div>
+    <div id="log-close"><button onclick="closeLog()">とじる</button></div>
+  </div>
+
+  <!-- セーブ/ロード -->
+  <div id="saveload-overlay">
+    <div id="saveload-box">
+      <div id="saveload-tabs">
+        <div class="sl-tab active" id="tab-save" onclick="switchSLTab('save')">SAVE</div>
+        <div class="sl-tab" id="tab-load" onclick="switchSLTab('load')">LOAD</div>
+      </div>
+      <div id="sl-title">— SAVE —</div>
+      <div id="save-slots"></div>
+      <button id="saveload-close" onclick="closeSaveLoad()">とじる</button>
+    </div>
+  </div>
+
 </div>
 
 <script src="scenario.js"></script>
@@ -230,30 +255,43 @@ function playVoice(key){
   const a=new Audio(voiceFiles[key]);
   a.play();
   document.getElementById('vdot').classList.add('active');
-  document.getElementById('voice-label').textContent='♪ CV：霧崎メア';
+  document.getElementById('voice-label').textContent='♪ 再生中';
   a.onended=()=>{
     document.getElementById('vdot').classList.remove('active');
     document.getElementById('voice-label').textContent=Object.keys(voiceFiles).length+'件 読み込み済';
   };
 }
 function toggleHelp(){ document.getElementById('voice-help').classList.toggle('show'); }
+
 function setBg(cls,stars){
   document.getElementById('bg').className=cls;
   document.getElementById('stars').classList.toggle('visible',!!stars);
 }
+
 function setChara(show){
   const charaEl = document.getElementById('chara');
   const img = document.getElementById('chara-img');
-  const svg = document.getElementById('chara-svg');
   if(show){
     charaEl.classList.add('visible');
   } else {
+    // まずopacityだけ下げてゆっくりフェードアウト（CSSの0.8s transition）
     charaEl.classList.remove('visible');
-    img.classList.remove('visible');
-    img.src='';
-    svg.style.display='none';
+    // フェードアウト完了(0.85s)後にimg片付け
+    setTimeout(()=>{
+      if(!charaEl.classList.contains('visible')){
+        img.classList.remove('visible');
+        img.style.opacity = '0';
+        setTimeout(()=>{
+          if(!charaEl.classList.contains('visible')){
+            img.style.display = 'none';
+            img.src = '';
+          }
+        }, 400);
+      }
+    }, 800);
   }
 }
+
 function setBgImage(f){
   const el=document.getElementById('bg-img');
   if(f){
@@ -264,20 +302,32 @@ function setBgImage(f){
     setTimeout(()=>{ if(!el.classList.contains('visible')) el.style.backgroundImage=''; }, 1200);
   }
 }
+
 function setCharaImage(f){
   const img=document.getElementById('chara-img');
-  const svg=document.getElementById('chara-svg');
   const charaEl=document.getElementById('chara');
-  if(f && charaEl.classList.contains('visible')){
-    img.src=IMG+f;
-    img.onload=()=>img.classList.add('visible');
-    svg.style.display='none';
+  // chara:falseのシーンは画像を触らない（setCharaのフェードに任せる）
+  if(!charaEl.classList.contains('visible')){
+    return;
+  }
+  if(f){
+    const newSrc=IMG+f;
+    if(img.getAttribute('data-src')===newSrc) return; // 同じ画像なら何もしない
+    img.setAttribute('data-src', newSrc);
+    img.style.display='block';
+    img.onerror=()=>{ img.style.display='none'; };
+    img.onload=()=>{
+      img.classList.add('visible');
+      img.style.opacity='1';
+    };
+    img.src=newSrc;
   } else {
-    img.classList.remove('visible');
+    img.style.display='none';
     img.src='';
-    svg.style.display='none';
+    img.removeAttribute('data-src');
   }
 }
+
 function showHeart(){
   const h=document.getElementById('heart-effect');
   h.classList.add('show');
@@ -285,29 +335,36 @@ function showHeart(){
 }
 function showChapterTitle(label,text){
   return new Promise(res=>{
+    const tb=document.getElementById('textbox');
+    const bgEl=document.getElementById('bg');
+    const bgImgEl=document.getElementById('bg-img');
     const el=document.getElementById('chapter-title');
-    document.getElementById('ch-label').textContent=label;
-    document.getElementById('ch-text').textContent=text;
-    el.classList.add('show');
-    setTimeout(()=>{el.classList.remove('show');setTimeout(res,800);},2800);
-  });
-}
-
-let isTyping=false,typeTimer=null,typeResolve=null;
-function typeText(el,text,speed=38){
-  return new Promise(res=>{
-    isTyping=true;typeResolve=res;el.innerHTML='';
-    const lines=text.split('\n');
-    const spans=lines.map(()=>document.createElement('span'));
-    spans.forEach((s,i)=>{el.appendChild(s);if(i<spans.length-1)el.appendChild(document.createElement('br'));});
-    let li=0,ci=0;
-    function tick(){
-      if(li>=lines.length){isTyping=false;res();return;}
-      spans[li].textContent+=lines[li][ci]||'';ci++;
-      if(ci>=lines[li].length){li++;ci=0;}
-      typeTimer=setTimeout(tick,speed);
-    }
-    tick();
+    // テキストボックスをフェードアウト
+    tb.style.transition='opacity 0.6s ease';
+    tb.style.opacity='0';
+    tb.style.pointerEvents='none';
+    // 立ち絵を消す
+    setChara(false);
+    // 背景画像をゆっくりフェードアウト
+    bgImgEl.style.transition='opacity 0.8s ease';
+    bgImgEl.classList.remove('visible');
+    // 0.8秒後に背景を黒にしてタイトル表示
+    setTimeout(()=>{
+      bgEl.style.background='#000';
+      document.getElementById('ch-label').textContent=label;
+      document.getElementById('ch-text').textContent=text;
+      el.classList.add('show');
+      // 2.8秒後にタイトルをフェードアウト
+      setTimeout(()=>{
+        el.classList.remove('show');
+        // テキストボックスを戻す
+        setTimeout(()=>{
+          tb.style.opacity='1';
+          tb.style.pointerEvents='';
+          res();
+        },600);
+      },2800);
+    },800);
   });
 }
 function skipType(el,text){
@@ -319,13 +376,44 @@ function skipType(el,text){
   if(typeResolve){typeResolve();typeResolve=null;}
 }
 
+// ========== TYPEWRITER ==========
+let typeTimer=null, isTyping=false, typeResolve=null;
+
+function typeText(el, text, speed){
+  return new Promise(res=>{
+    clearTimeout(typeTimer);
+    el.innerHTML='';
+    isTyping=true;
+    typeResolve=res;
+    const lines=text.split('\n');
+    let lineIdx=0, charIdx=0;
+    const spans=lines.map(()=>{ const s=document.createElement('span'); el.appendChild(s); return s; });
+    lines.forEach((_,i)=>{ if(i>0){ const br=document.createElement('br'); spans[i].before(br); } });
+
+    function tick(){
+      if(lineIdx>=lines.length){
+        isTyping=false;
+        if(typeResolve){typeResolve();typeResolve=null;}
+        return;
+      }
+      const line=lines[lineIdx];
+      if(charIdx<line.length){
+        spans[lineIdx].textContent+=line[charIdx];
+        charIdx++;
+        typeTimer=setTimeout(tick,speed);
+      } else {
+        lineIdx++;charIdx=0;
+        typeTimer=setTimeout(tick,speed);
+      }
+    }
+    tick();
+  });
+}
+
 // ========== SCRIPT ==========
-
-
 let idx=0, currentScript=script;
 let pages=[], pageIdx=0;
 
-// 文字数ベースでページ分割（1ページあたり最大60文字×3行=約90文字）
 function splitIntoPages(text, dial){
   const maxCharsPerPage = 85;
   const lines = text.split('\n');
@@ -334,7 +422,7 @@ function splitIntoPages(text, dial){
   let bufLen = 0;
 
   for(const line of lines){
-    const lineLen = line.length + 1; // +1 for newline
+    const lineLen = line.length + 1;
     if(bufLen + lineLen > maxCharsPerPage && buf.length > 0){
       result.push(buf.join('\n'));
       buf = [];
@@ -357,7 +445,7 @@ function startGame(){
 function setNameplate(scene){
   const name=document.getElementById('nameplate');
   if(scene.s==='葵'){
-    name.innerHTML='<span>白石 葵</span><span style="font-size:10px;color:rgba(200,170,240,0.4);letter-spacing:0.05em;">CV：霧崎メア</span>';
+    name.innerHTML='<span>白石 葵</span>';
     if(scene.voice){
       const pb=document.createElement('span');
       pb.className='play-btn';pb.textContent='▶ 再生';
@@ -378,6 +466,13 @@ async function processScene(i){
   const scene=currentScript[i];
   if(!scene) return;
 
+  if(scene.fadeIn){
+    const overlay=document.getElementById('scene-overlay');
+    overlay.classList.add('show');
+    await new Promise(r=>setTimeout(r,500));
+    overlay.classList.remove('show');
+  }
+
   setBg(scene.bg||'bg-office', scene.stars);
   setChara(!!scene.chara);
   setBgImage(scene.bgImg||null);
@@ -395,8 +490,9 @@ async function processScene(i){
 
   if(scene.type==='end'){
     document.getElementById('nameplate').innerHTML='';
-    document.getElementById('dialogue').innerHTML='<span style="color:rgba(200,170,240,0.6);font-style:italic;letter-spacing:0.15em;font-size:13px;">— Chapter 2　了 —</span><br><br><span style="font-size:12px;color:rgba(200,170,240,0.35);">Chapter 3 へ続く...</span>';
+    document.getElementById('dialogue').innerHTML='<span style="color:rgba(200,170,240,0.7);font-family:\"Noto Serif JP\",serif;font-size:18px;letter-spacing:0.4em;">Fin</span><br><br><span style="font-size:11px;color:rgba(200,170,240,0.3);letter-spacing:0.2em;">隣に、君がいる</span>';
     document.getElementById('click-hint').style.display='none';
+    setChara(false);
     return;
   }
 
@@ -405,10 +501,10 @@ async function processScene(i){
   dial.className=(scene.narration||scene.n)?'narration':'';
   setNameplate(scene);
 
-  // ページ分割
   pages = splitIntoPages(text, dial);
   pageIdx = 0;
 
+  addLog(scene.s||'', text, !!(scene.n||scene.narration));
   if(scene.voice) playVoice(scene.voice);
   await showPage(scene, pages[0]);
   if(scene.heart && pages.length===1) showHeart();
@@ -421,13 +517,11 @@ async function showPage(scene, text){
 
 async function advance(){
   if(isTyping){
-    const scene=currentScript[idx];
     const text=pages[pageIdx]||'';
     if(text) skipType(document.getElementById('dialogue'), text);
     return;
   }
 
-  // まだページが残ってる
   if(pageIdx < pages.length - 1){
     pageIdx++;
     const scene=currentScript[idx];
@@ -438,10 +532,112 @@ async function advance(){
     return;
   }
 
-  // 次のシーンへ
   const scene=currentScript[idx];
   if(!scene||scene.type==='end') return;
   processScene(idx+1);
+}
+
+// ========== LOG ==========
+const logEntries=[];
+function addLog(speaker,text,isNarration){
+  if(!text) return;
+  logEntries.push({speaker,text,isNarration});
+  if(logEntries.length>300) logEntries.shift();
+}
+function openLog(){
+  const box=document.getElementById('log-box');
+  box.innerHTML='';
+  logEntries.slice().reverse().forEach(e=>{
+    const div=document.createElement('div');
+    div.className='log-entry';
+    if(e.speaker){
+      const sp=document.createElement('div');
+      sp.className='log-speaker';
+      sp.textContent=e.speaker;
+      div.appendChild(sp);
+    }
+    const txt=document.createElement('div');
+    txt.className='log-text'+(e.isNarration?' narration':'');
+    txt.textContent=e.text.replace(/\\n/g,'\n');
+    div.appendChild(txt);
+    box.appendChild(div);
+  });
+  document.getElementById('log-overlay').classList.add('show');
+}
+function closeLog(){ document.getElementById('log-overlay').classList.remove('show'); }
+
+// ========== SAVE/LOAD ==========
+const SAVE_KEY='tnkgi_';
+let slMode='save';
+function openSaveLoad(mode){
+  slMode=mode; switchSLTab(mode);
+  document.getElementById('saveload-overlay').classList.add('show');
+}
+function closeSaveLoad(){ document.getElementById('saveload-overlay').classList.remove('show'); }
+function switchSLTab(mode){
+  slMode=mode;
+  document.getElementById('tab-save').classList.toggle('active',mode==='save');
+  document.getElementById('tab-load').classList.toggle('active',mode==='load');
+  document.getElementById('sl-title').textContent=mode==='save'?'— SAVE —':'— LOAD —';
+  renderSlots();
+}
+function renderSlots(){
+  const c=document.getElementById('save-slots'); c.innerHTML='';
+  for(let i=1;i<=5;i++){
+    const raw=localStorage.getItem(SAVE_KEY+i);
+    const slot=document.createElement('div'); slot.className='save-slot';
+    const num=document.createElement('div'); num.className='slot-num'; num.textContent=i; slot.appendChild(num);
+    const info=document.createElement('div'); info.className='slot-info';
+    if(raw){
+      const d=JSON.parse(raw);
+      const n=document.createElement('div'); n.className='slot-name'; n.textContent=d.label||'???'; info.appendChild(n);
+      const dt=document.createElement('div'); dt.className='slot-date'; dt.textContent=d.date||''; info.appendChild(dt);
+    } else {
+      const e=document.createElement('div'); e.className='slot-empty'; e.textContent='— 空き —'; info.appendChild(e);
+    }
+    slot.appendChild(info);
+    const acts=document.createElement('div'); acts.className='slot-actions';
+    if(slMode==='save'){
+      const sb=document.createElement('button'); sb.className='slot-btn'; sb.textContent='セーブ';
+      sb.onclick=()=>doSave(i); acts.appendChild(sb);
+      if(raw){ const db=document.createElement('button'); db.className='slot-btn del'; db.textContent='削除';
+        db.onclick=(e)=>{e.stopPropagation();localStorage.removeItem(SAVE_KEY+i);renderSlots();}; acts.appendChild(db); }
+    } else if(raw){
+      const lb=document.createElement('button'); lb.className='slot-btn'; lb.textContent='ロード';
+      lb.onclick=()=>doLoad(i); acts.appendChild(lb);
+    }
+    slot.appendChild(acts); c.appendChild(slot);
+  }
+}
+function doSave(slot){
+  const scene=currentScript[idx];
+  const label=scene?(scene.chapterLabel||(scene.n||scene.t||'').substring(0,15)+'…'):'???';
+  const now=new Date();
+  const date=`${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+  localStorage.setItem(SAVE_KEY+slot,JSON.stringify({idx,pageIdx,label,date}));
+  renderSlots();
+}
+async function doLoad(slot){
+  const raw=localStorage.getItem(SAVE_KEY+slot);
+  if(!raw) return;
+  const d=JSON.parse(raw);
+  const loadIdx=d.idx||0;
+  const loadPageIdx=d.pageIdx||0;
+  closeSaveLoad();
+  document.getElementById('game-title-screen').style.display='none';
+  // processSceneを呼ぶとpageIdx=0から始まるので、完了後にpageIdxを復元
+  await processScene(loadIdx);
+  // ページ途中だった場合、該当ページまでジャンプ
+  if(loadPageIdx > 0 && loadPageIdx < pages.length){
+    pageIdx = loadPageIdx;
+    const scene = currentScript[idx];
+    if(scene){
+      const dial=document.getElementById('dialogue');
+      dial.className=(scene.narration||scene.n)?'narration':'';
+      // タイプライターなしで即表示
+      skipType(dial, pages[pageIdx]);
+    }
+  }
 }
 
 function restartGame(){
@@ -463,15 +659,12 @@ function closeChapterMenu(){
 
 function jumpToChapter(label){
   closeChapterMenu();
-  // Find chapter scene index
   const targetIdx = currentScript.findIndex(s => s.chapterLabel === label);
   if(targetIdx === -1) return;
   idx = targetIdx;
   pages = []; pageIdx = 0;
   document.getElementById('click-hint').style.display='block';
-  document.getElementById('choices').style.display='none';
   setChara(false);
-  // Hide title screen if showing
   const ts=document.getElementById('game-title-screen');
   ts.style.opacity='0';
   ts.style.display='none';
